@@ -23,25 +23,27 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew bootJar -x test
 
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create target directory on EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} "mkdir -p ~/CorebridgeBe/dabom/build/libs"
+
       - name: Copy JAR to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          source: "build/libs/*.jar"
-          target: "~/CorebridgeBe/dabom/build/libs/"
-          strip_components: 2
+        run: |
+          scp -i ~/.ssh/id_rsa build/libs/*.jar ubuntu@${{ secrets.EC2_HOST }}:~/CorebridgeBe/dabom/build/libs/
 
       - name: Deploy on EC2
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} "
             cd ~/CorebridgeBe
             sudo docker compose stop dabom-app
             sudo docker compose rm -f dabom-app
             sudo docker compose up -d dabom-app
-            echo "Deploy complete!"
+            echo 'Deploy complete!'
+          "
