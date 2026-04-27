@@ -211,10 +211,17 @@ public class VideoS3EncodingService {
             String fileName = localFile.getFileName().toString();
             String s3Key = s3Prefix + fileName;
 
+//            PutObjectRequest putRequest = PutObjectRequest.builder()
+//                    .bucket(bucketName)
+//                    .key(s3Key)
+//                    .contentType(getContentType(fileName))
+//                    .build();
+
             PutObjectRequest putRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(s3Key)
                     .contentType(getContentType(fileName))
+                    .acl(software.amazon.awssdk.services.s3.model.ObjectCannedACL.PUBLIC_READ)
                     .build();
 
             s3Client.putObject(putRequest, RequestBody.fromFile(localFile));
